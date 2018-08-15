@@ -11,7 +11,10 @@
     using Microsoft.Bot.Builder.Luis.Models;
     using Microsoft.Bot.Connector;
 
-    [LuisModel("YourAppId", "YourEndpointKey")]
+    using System.Net.Http;
+    using Newtonsoft.Json;
+
+    [LuisModel("c9bdb42b-9e3e-4995-bd91-67b7162d65e2", "fc29b1d583574a8cbb7b80c2c2066eb4")]
     [Serializable]
     public class RootLuisDialog : LuisDialog<object>
     {
@@ -37,7 +40,7 @@
         [LuisIntent("SearchHotels")]
         public async Task Search(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
-            var message = await activity;
+            /*var message = await activity;
             await context.PostAsync($"Welcome to the Hotels finder! We are analyzing your message: '{message.Text}'...");
 
             var hotelsQuery = new HotelsQuery();
@@ -51,7 +54,19 @@
 
             var hotelsFormDialog = new FormDialog<HotelsQuery>(hotelsQuery, this.BuildHotelsForm, FormOptions.PromptInStart, result.Entities);
 
-            context.Call(hotelsFormDialog, this.ResumeAfterHotelsFormDialog);
+            context.Call(hotelsFormDialog, this.ResumeAfterHotelsFormDialog);*/
+
+            string resLlamada;
+            string texto;
+
+            HttpClient request = new HttpClient();            
+            resLlamada = await request.GetStringAsync("https://functionsura.azurewebsites.net/api/ConsultaUsuarios");
+            dynamic obj = JsonConvert.DeserializeObject(resLlamada);
+
+            //texto = String.Format("Hola {0}, el teléfono de {1} es {2}", obj[0].Nombre, obj[1].Nombre, obj[1].Telefono);
+            texto = $"Hola {obj[0].Nombre}, el teléfono de {obj[1].Nombre} es {obj[1].Telefono}";
+
+            await context.PostAsync(texto);
         }
 
         [LuisIntent("ShowHotelsReviews")]
@@ -92,7 +107,7 @@
         [LuisIntent("Help")]
         public async Task Help(IDialogContext context, LuisResult result)
         {
-            await context.PostAsync("Hi! Try asking me things like 'search hotels in Seattle', 'search hotels near LAX airport' or 'show me the reviews of The Bot Resort'");
+            await context.PostAsync("¡Hola! Intente preguntarme cosas como 'buscar hoteles en Seattle', 'buscar hoteles cerca del aeropuerto LAX' o 'mostrarme las reseñas de The Bot Resort");
 
             context.Wait(this.MessageReceived);
         }

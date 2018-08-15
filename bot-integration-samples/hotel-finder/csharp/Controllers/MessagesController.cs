@@ -11,6 +11,9 @@
     using Microsoft.Bot.Builder.Dialogs;
     using Microsoft.Bot.Connector;
     using Services;
+    using System.Globalization;
+    using System.Web.Http.Description;
+    using System.Threading;
 
     [BotAuthentication]
     public class MessagesController : ApiController
@@ -43,14 +46,14 @@
             }
             else
             {
-                this.HandleSystemMessage(activity);
+                this.HandleSystemMessageAsync(activity);
             }
 
             var response = Request.CreateResponse(HttpStatusCode.OK);
             return response;
         }
 
-        private Activity HandleSystemMessage(Activity message)
+        private async Task<Activity> HandleSystemMessageAsync(Activity message)
         {
             if (message.Type == ActivityTypes.DeleteUserData)
             {
@@ -59,9 +62,47 @@
             }
             else if (message.Type == ActivityTypes.ConversationUpdate)
             {
-                // Handle conversation state changes, like members being added and removed
-                // Use Activity.MembersAdded and Activity.MembersRemoved and Activity.Action for info
-                // Not available in all channels
+                IConversationUpdateActivity iConversationUpdated = message as IConversationUpdateActivity;
+                if (iConversationUpdated != null)
+                {
+                    ConnectorClient connector = new ConnectorClient(new System.Uri(message.ServiceUrl));
+                    foreach (var member in iConversationUpdated.MembersAdded ?? System.Array.Empty<ChannelAccount>())
+                    {
+                        // if the bot is added, then   
+                        if (member.Id == iConversationUpdated.Recipient.Id)
+                        {
+
+                            // Saludos dependiendo la hora
+                            Thread.CurrentThread.CurrentCulture = new CultureInfo("es-MX");
+                            Int32 hora = DateTime.Now.Hour;
+
+                            /*if (hora < 12)
+                            {
+                                var reply = ((Activity)iConversationUpdated).CreateReply($"¡Hola! Buenos días.");
+                                await connector.Conversations.ReplyToActivityAsync(reply);
+                            }
+                            if (hora < 19)
+                            {
+                                var reply = ((Activity)iConversationUpdated).CreateReply($"¡Hola! Buena tarde.");
+                                await connector.Conversations.ReplyToActivityAsync(reply);
+                            }
+                            if (hora < 24)
+                            {
+                                var reply = ((Activity)iConversationUpdated).CreateReply($"¡Hola! Buena noche.");
+                                await connector.Conversations.ReplyToActivityAsync(reply);
+                            }*/
+
+                            string nombre = "Luis Raúl";
+                                                       
+                            var reply = ((Activity)iConversationUpdated).CreateReply($"¡Hola {nombre}! Buenos días.");
+                            await connector.Conversations.ReplyToActivityAsync(reply);
+                        }
+                    }
+                }
+
+
+
+
             }
             else if (message.Type == ActivityTypes.ContactRelationUpdate)
             {
