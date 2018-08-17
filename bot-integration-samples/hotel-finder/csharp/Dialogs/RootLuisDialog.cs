@@ -13,31 +13,33 @@
 
     using System.Net.Http;
     using Newtonsoft.Json;
+    using System.Text;
 
-    [LuisModel("c9bdb42b-9e3e-4995-bd91-67b7162d65e2", "fc29b1d583574a8cbb7b80c2c2066eb4")]
+    /*[LuisModel("c9bdb42b-9e3e-4995-bd91-67b7162d65e2", "fc29b1d583574a8cbb7b80c2c2066eb4")]*/
+    [LuisModel("a4c3f93b-6a1a-4542-928e-5b6d28eb2828", "fc29b1d583574a8cbb7b80c2c2066eb4")]
     [Serializable]
     public class RootLuisDialog : LuisDialog<object>
     {
-        private const string EntityGeographyCity = "builtin.geography.city";
+        /*private const string EntityGeographyCity = "builtin.geography.city";
 
         private const string EntityHotelName = "Hotel";
 
         private const string EntityAirportCode = "AirportCode";
 
-        private IList<string> titleOptions = new List<string> { "“Very stylish, great stay, great staff”", "“good hotel awful meals”", "“Need more attention to little things”", "“Lovely small hotel ideally situated to explore the area.”", "“Positive surprise”", "“Beautiful suite and resort”" };
+        private IList<string> titleOptions = new List<string> { "“Very stylish, great stay, great staff”", "“good hotel awful meals”", "“Need more attention to little things”", "“Lovely small hotel ideally situated to explore the area.”", "“Positive surprise”", "“Beautiful suite and resort”" };*/
 
         [LuisIntent("")]
         [LuisIntent("None")]
         public async Task None(IDialogContext context, LuisResult result)
         {
-            string message = $"Sorry, I did not understand '{result.Query}'. Type 'help' if you need assistance.";
+            string message = "Disculpa, no logro entender, menciona 'ayuda' para transferirte con un asesor.";
 
             await context.PostAsync(message);
 
             context.Wait(this.MessageReceived);
         }
 
-        [LuisIntent("SearchHotels")]
+        [LuisIntent("identidad")]
         public async Task Search(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
             /*var message = await activity;
@@ -69,61 +71,55 @@
             await context.PostAsync(texto);
         }
 
-        [LuisIntent("ShowHotelsReviews")]
+        [LuisIntent("acepto")]
         public async Task Reviews(IDialogContext context, LuisResult result)
         {
-            EntityRecommendation hotelEntityRecommendation;
 
-            if (result.TryFindEntity(EntityHotelName, out hotelEntityRecommendation))
-            {
-                await context.PostAsync($"Looking for reviews of '{hotelEntityRecommendation.Entity}'...");
+            string resLlamada;
+            string texto;
 
-                var resultMessage = context.MakeMessage();
-                resultMessage.AttachmentLayout = AttachmentLayoutTypes.Carousel;
-                resultMessage.Attachments = new List<Attachment>();
+            HttpClient request = new HttpClient();
+            resLlamada = await request.GetStringAsync("https://functionsura.azurewebsites.net/api/ConsultaUsuarios");
+            dynamic obj = JsonConvert.DeserializeObject(resLlamada);
 
-                for (int i = 0; i < 5; i++)
-                {
-                    var random = new Random(i);
-                    ThumbnailCard thumbnailCard = new ThumbnailCard()
-                    {
-                        Title = this.titleOptions[random.Next(0, this.titleOptions.Count - 1)],
-                        Text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris odio magna, sodales vel ligula sit amet, vulputate vehicula velit. Nulla quis consectetur neque, sed commodo metus.",
-                        Images = new List<CardImage>()
-                        {
-                            new CardImage() { Url = "https://upload.wikimedia.org/wikipedia/en/e/ee/Unknown-person.gif" }
-                        },
-                    };
+            //texto = String.Format("Hola {0}, el teléfono de {1} es {2}", obj[0].Nombre, obj[1].Nombre, obj[1].Telefono);
+            texto = $"Hola {obj[0].Nombre}, que buena decisión";
 
-                    resultMessage.Attachments.Add(thumbnailCard.ToAttachment());
-                }
+            await context.PostAsync(texto);
 
-                await context.PostAsync(resultMessage);
-            }
 
-            context.Wait(this.MessageReceived);
+
         }
 
-        [LuisIntent("Help")]
+        [LuisIntent("ayuda")]
         public async Task Help(IDialogContext context, LuisResult result)
         {
-            await context.PostAsync("¡Hola! Intente preguntarme cosas como 'buscar hoteles en Seattle', 'buscar hoteles cerca del aeropuerto LAX' o 'mostrarme las reseñas de The Bot Resort");
+            HttpClient request = new HttpClient();            
+            HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://functionsura.azurewebsites.net/api/InsertarEncuesta?code=V1aYP5x3IPGjSCTcLsx4g68jZAkIkrojIagba6JN6v89lsBSfUwxYA==");
 
-            context.Wait(this.MessageReceived);
+            var obj = new { userId = "2", respuesta1 = "israel12", respuesta2 = "mal12" };
+            string str = JsonConvert.SerializeObject(obj);
+
+            requestMessage.Content = new StringContent(str, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await request.SendAsync(requestMessage);
+            var responseString = await response.Content.ReadAsStringAsync();
+            
+            await context.PostAsync(responseString);
         }
 
         private IForm<HotelsQuery> BuildHotelsForm()
         {
             OnCompletionAsyncDelegate<HotelsQuery> processHotelsSearch = async (context, state) =>
             {
-                var message = "Searching for hotels";
+                var message = "Buscando";
                 if (!string.IsNullOrEmpty(state.Destination))
                 {
-                    message += $" in {state.Destination}...";
+                    message += $" en {state.Destination}...";
                 }
                 else if (!string.IsNullOrEmpty(state.AirportCode))
                 {
-                    message += $" near {state.AirportCode.ToUpperInvariant()} airport...";
+                    message += $" cerca {state.AirportCode.ToUpperInvariant()} airport...";
                 }
 
                 await context.PostAsync(message);
